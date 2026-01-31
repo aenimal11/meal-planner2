@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Meal Planner</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Use Netlify Functions path
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:8888' : '/.netlify/functions';
+
+    // Lucide React icons as inline SVG components
+    const ChefHat = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/>
+        <line x1="6" x2="18" y1="17" y2="17"/>
+      </svg>
+    );
+
+    const ShoppingCart = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="8" cy="21" r="1"/>
+        <circle cx="19" cy="21" r="1"/>
+        <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
+      </svg>
+    );
+
+    const Calendar = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+        <line x1="16" x2="16" y1="2" y2="6"/>
+        <line x1="8" x2="8" y1="2" y2="6"/>
+        <line x1="3" x2="21" y1="10" y2="10"/>
+      </svg>
+    );
+
+    const Clock = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+    );
+
+    const Flame = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>
+      </svg>
+    );
+
+    const Save = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+        <polyline points="17 21 17 13 7 13 7 21"/>
+        <polyline points="7 3 7 8 15 8"/>
+      </svg>
+    );
+
+    const RefreshCw = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+        <path d="M21 3v5h-5"/>
+        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+        <path d="M3 21v-5h5"/>
+      </svg>
+    );
+
+    const Edit = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        <path d="m15 5 4 4"/>
+      </svg>
+    );
+
+    const FileText = (props) => (
+      <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" x2="8" y1="13" y2="13"/>
+        <line x1="16" x2="8" y1="17" y2="17"/>
+        <line x1="10" x2="8" y1="9" y2="9"/>
+      </svg>
+    );
+
+    function MealPlanner() {
+      const [view, setView] = useState('plan');
+      const [planDays, setPlanDays] = useState(5);
+      const [quickMeals, setQuickMeals] = useState(3);
+      const [slowCookerMeals, setSlowCookerMeals] = useState(1);
+      const [weekendMeals, setWeekendMeals] = useState(1);
+      const [loading, setLoading] = useState(false);
+      const [currentPlan, setCurrentPlan] = useState(null);
+      const [mealHistory, setMealHistory] = useState([]);
+      const [additionalNotes, setAdditionalNotes] = useState('');
+      const [adjustingMeal, setAdjustingMeal] = useState(null);
+      const [adjustmentRequest, setAdjustmentRequest] = useState('');
+      const [regeneratingMeal, setRegeneratingMeal] = useState(null);
+      const [loadingRecipe, setLoadingRecipe] = useState(null);
+      const [expandedRecipes, setExpandedRecipes] = useState({});
+
+      useEffect(() => {
+        loadMealHistory();
+      }, []);
+
+      const loadMealHistory = async () => {
+        try {
+          const stored = localStorage.getItem('meal-history');
+          if (stored) {
+            setMealHistory(JSON.parse(stored));
+          }
+        } catch (error) {
+          console.log('No meal history yet');
+        }
+      };
+
+      const saveMealHistory = async (history) => {
+        try {
+          localStorage.setItem('meal-history', JSON.stringify(history));
+        } catch (error) {
+          console.error('Failed to save meal history:', error);
+        }
+      };
+
+      const callClaudeAPI = async (messages, maxTokens = 4000) => {
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            messages,
+            max_tokens: maxTokens
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('API request failed');
+        }
+
+        return await response.json();
+      };
+
+      const generateMealPlan = async () => {
+        setLoading(true);
+        
+        const topRatedMeals = mealHistory
+          .filter(m => m.rating && (m.rating.kidsApproved === 'good' || m.rating.adultsApproved === 'good'))
+          .slice(0, 5);
+
+        const prompt = \`You are a meal planning assistant for a family of 5 (2 adults, 3 kids) with specific dietary preferences:
+- Avoid ultra-processed foods, seed oils, sugar, and enriched flour
+- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)
+- Raw milk and eggs on hand
+
+Generate a \${planDays}-day dinner meal plan. The user has requested:
+- At least \${quickMeals} quick prep meals (30 min or less active time)
+- At least \${slowCookerMeals} slow cooker/pressure cooker meals (prep in advance)
+- At least \${weekendMeals} weekend project meals (more involved, worth the effort)
+
+For any remaining meals, choose appropriate types based on variety and balance.
+
+\${additionalNotes ? \`Additional preferences: \${additionalNotes}\` : ''}
+
+\${topRatedMeals.length > 0 ? \`Previously enjoyed meals (consider including similar): \${topRatedMeals.map(m => m.name).join(', ')}\` : ''}
+
+Format your response as a JSON object with this structure:
+{
+  "meals": [
+    {
+      "day": 1,
+      "name": "Meal name",
+      "type": "quick" | "slow-cooker" | "weekend",
+      "protein": "type and amount",
+      "description": "brief description",
+      "prepTime": "estimated time",
+      "ingredients": ["ingredient 1", "ingredient 2"],
+      "notes": "any prep tips or leftover ideas"
+    }
+  ],
+  "shoppingList": {
+    "meat": ["item with amount"],
+    "produce": ["item"],
+    "dairy": ["item"],
+    "pantry": ["item"],
+    "other": ["item"]
+  }
+}
+
+Return ONLY the JSON object, no other text.\`;
+
+        try {
+          const data = await callClaudeAPI([{ role: 'user', content: prompt }]);
+          const text = data.content.map(i => i.text || "").join("\\n");
+          const cleanText = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+          const plan = JSON.parse(cleanText);
+          
+          setCurrentPlan(plan);
+          setView('current');
+        } catch (error) {
+          console.error('Error generating meal plan:', error);
+          alert('Failed to generate meal plan. Please try again.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const rateMeal = async (mealIndex, ratingType, value) => {
+        const updatedPlan = { ...currentPlan };
+        if (!updatedPlan.meals[mealIndex].rating) {
+          updatedPlan.meals[mealIndex].rating = {};
+        }
+        updatedPlan.meals[mealIndex].rating[ratingType] = value;
+        setCurrentPlan(updatedPlan);
+      };
+
+      const regenerateMeal = async (mealIndex) => {
+        setRegeneratingMeal(mealIndex);
+        
+        const currentMeal = currentPlan.meals[mealIndex];
+        
+        const prompt = \`Generate a replacement meal for day \${currentMeal.day} of a meal plan for a family of 5 (2 adults, 3 kids).
+
+Dietary preferences:
+- Avoid ultra-processed foods, seed oils, sugar, and enriched flour
+- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)
+- Raw milk and eggs on hand
+
+Requirements:
+- Type: \${currentMeal.type}
+- Should be DIFFERENT from: \${currentMeal.name}
+- Other meals in the plan: \${currentPlan.meals.filter((_, i) => i !== mealIndex).map(m => m.name).join(', ')}
+
+Format your response as a JSON object with this structure (just the single meal):
+{
+  "day": \${currentMeal.day},
+  "name": "Meal name",
+  "type": "\${currentMeal.type}",
+  "protein": "type and amount",
+  "description": "brief description",
+  "prepTime": "estimated time",
+  "ingredients": ["ingredient 1", "ingredient 2"],
+  "notes": "any prep tips or leftover ideas"
+}
+
+Return ONLY the JSON object, no other text.\`;
+
+        try {
+          const data = await callClaudeAPI([{ role: 'user', content: prompt }], 1000);
+          const text = data.content.map(i => i.text || "").join("\\n");
+          const cleanText = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+          const newMeal = JSON.parse(cleanText);
+          
+          const updatedPlan = { ...currentPlan };
+          updatedPlan.meals[mealIndex] = newMeal;
+          
+          await regenerateShoppingList(updatedPlan);
+          
+        } catch (error) {
+          console.error('Error regenerating meal:', error);
+          alert('Failed to regenerate meal. Please try again.');
+        } finally {
+          setRegeneratingMeal(null);
+        }
+      };
+
+      const adjustMeal = async () => {
+        if (!adjustmentRequest.trim()) return;
+        
+        setRegeneratingMeal(adjustingMeal);
+        
+        const currentMeal = currentPlan.meals[adjustingMeal];
+        
+        const prompt = \`Adjust this meal based on the user's request.
+
+Current meal:
+\${JSON.stringify(currentMeal, null, 2)}
+
+User's adjustment request: \${adjustmentRequest}
+
+Dietary preferences:
+- Avoid ultra-processed foods, seed oils, sugar, and enriched flour
+- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)
+- Raw milk and eggs on hand
+
+Format your response as a JSON object with this structure (the adjusted meal):
+{
+  "day": \${currentMeal.day},
+  "name": "Meal name",
+  "type": "\${currentMeal.type}",
+  "protein": "type and amount",
+  "description": "brief description",
+  "prepTime": "estimated time",
+  "ingredients": ["ingredient 1", "ingredient 2"],
+  "notes": "any prep tips or leftover ideas"
+}
+
+Return ONLY the JSON object, no other text.\`;
+
+        try {
+          const data = await callClaudeAPI([{ role: 'user', content: prompt }], 1000);
+          const text = data.content.map(i => i.text || "").join("\\n");
+          const cleanText = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+          const adjustedMeal = JSON.parse(cleanText);
+          
+          const updatedPlan = { ...currentPlan };
+          updatedPlan.meals[adjustingMeal] = adjustedMeal;
+          
+          await regenerateShoppingList(updatedPlan);
+          
+          setAdjustingMeal(null);
+          setAdjustmentRequest('');
+          
+        } catch (error) {
+          console.error('Error adjusting meal:', error);
+          alert('Failed to adjust meal. Please try again.');
+        } finally {
+          setRegeneratingMeal(null);
+        }
+      };
+
+      const regenerateShoppingList = async (plan) => {
+        const prompt = \`Given these meals, generate a consolidated shopping list organized by category:
+
+\${JSON.stringify(plan.meals, null, 2)}
+
+Format your response as a JSON object:
+{
+  "shoppingList": {
+    "meat": ["item with amount"],
+    "produce": ["item"],
+    "dairy": ["item"],
+    "pantry": ["item"],
+    "other": ["item"]
+  }
+}
+
+Return ONLY the JSON object, no other text.\`;
+
+        try {
+          const data = await callClaudeAPI([{ role: 'user', content: prompt }], 1000);
+          const text = data.content.map(i => i.text || "").join("\\n");
+          const cleanText = text.replace(/\`\`\`json|\`\`\`/g, "").trim();
+          const result = JSON.parse(cleanText);
+          
+          plan.shoppingList = result.shoppingList;
+          setCurrentPlan(plan);
+          
+        } catch (error) {
+          console.error('Error regenerating shopping list:', error);
+        }
+      };
+
+      const exportToAppleNotes = () => {
+        if (!currentPlan) return;
+        
+        let noteContent = \`Grocery List - \${new Date().toLocaleDateString()}\\n\\n\`;
+        
+        Object.entries(currentPlan.shoppingList).forEach(([category, items]) => {
+          if (items.length > 0) {
+            noteContent += \`\${category.toUpperCase()}\\n\`;
+            items.forEach(item => {
+              noteContent += \`☐ \${item}\\n\`;
+            });
+            noteContent += '\\n';
+          }
+        });
+        
+        const encodedContent = encodeURIComponent(noteContent);
+        const notesUrl = \`mobilenotes://note?content=\${encodedContent}\`;
+        
+        window.location.href = notesUrl;
+        
+        navigator.clipboard.writeText(noteContent).then(() => {
+          alert('Shopping list copied to clipboard! If Notes app didn\\'t open, you can paste it manually.');
+        }).catch(() => {
+          alert('Please copy the shopping list manually from the screen.');
+        });
+      };
+
+      const getRecipe = async (mealIndex) => {
+        setLoadingRecipe(mealIndex);
+        
+        const meal = currentPlan.meals[mealIndex];
+        
+        const prompt = \`Generate a detailed recipe for this meal:
+
+Meal: \${meal.name}
+Description: \${meal.description}
+Protein: \${meal.protein}
+Type: \${meal.type}
+Prep Time: \${meal.prepTime}
+Ingredients: \${meal.ingredients.join(', ')}
+\${meal.notes ? \`Notes: \${meal.notes}\` : ''}
+
+Create a complete recipe with:
+- Ingredient list with specific amounts for a family of 5 (2 adults, 3 kids)
+- Step-by-step cooking instructions
+- Any tips or variations
+- Total cook time
+
+Keep it practical and realistic. Return as plain text formatted recipe, not JSON.\`;
+
+        try {
+          const data = await callClaudeAPI([{ role: 'user', content: prompt }], 2000);
+          const recipe = data.content.map(i => i.text || "").join("\\n");
+          
+          const updatedPlan = { ...currentPlan };
+          updatedPlan.meals[mealIndex].recipe = recipe;
+          setCurrentPlan(updatedPlan);
+          
+          setExpandedRecipes({ ...expandedRecipes, [mealIndex]: true });
+          
+        } catch (error) {
+          console.error('Error generating recipe:', error);
+          alert('Failed to generate recipe. Please try again.');
+        } finally {
+          setLoadingRecipe(null);
+        }
+      };
+
+      const exportRecipeToNotes = (meal) => {
+        if (!meal.recipe) return;
+        
+        const noteContent = \`\${meal.name}\\n\\n\${meal.recipe}\`;
+        const encodedContent = encodeURIComponent(noteContent);
+        const notesUrl = \`mobilenotes://note?content=\${encodedContent}\`;
+        
+        window.location.href = notesUrl;
+        
+        navigator.clipboard.writeText(noteContent).then(() => {
+          alert('Recipe copied to clipboard! If Notes app didn\\'t open, you can paste it manually.');
+        }).catch(() => {
+          alert('Please copy the recipe manually from the screen.');
+        });
+      };
+
+      const saveMealToHistory = async (meal) => {
+        if (!meal.rating) {
+          alert('Please rate the meal before saving to history');
+          return;
+        }
+
+        const newHistory = [...mealHistory, {
+          ...meal,
+          cookedDate: new Date().toISOString()
+        }];
+        
+        setMealHistory(newHistory);
+        await saveMealHistory(newHistory);
+      };
+
+      const removeMealFromHistory = async (index) => {
+        const newHistory = mealHistory.filter((_, i) => i !== index);
+        setMealHistory(newHistory);
+        await saveMealHistory(newHistory);
+      };
+
+      const RatingButton = ({ label, value, onClick }) => {
+        const isGood = value === 'good';
+        const isBad = value === 'bad';
+        
+        return (
+          <div className="flex items-center gap-1">
+            <span className="text-xs text-gray-600 w-16">{label}:</span>
+            <button
+              onClick={() => onClick('good')}
+              className={\`px-2 py-1 rounded text-xs \${
+                isGood ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+              }\`}
+            >
+              Good
+            </button>
+            <button
+              onClick={() => onClick('bad')}
+              className={\`px-2 py-1 rounded text-xs \${
+                isBad ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'
+              }\`}
+            >
+              Bad
+            </button>
+          </div>
+        );
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 to-amber-50 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div className="flex items-center gap-3 mb-6">
+                <ChefHat className="w-8 h-8 text-orange-600" />
+                <h1 className="text-3xl font-bold text-gray-800">Family Meal Planner</h1>
+              </div>
+
+              <div className="flex gap-2 mb-6">
+                <button
+                  onClick={() => setView('plan')}
+                  className={\`px-4 py-2 rounded \${view === 'plan' ? 'bg-orange-600 text-white' : 'bg-gray-200'}\`}
+                >
+                  New Plan
+                </button>
+                <button
+                  onClick={() => setView('current')}
+                  className={\`px-4 py-2 rounded \${view === 'current' ? 'bg-orange-600 text-white' : 'bg-gray-200'}\`}
+                  disabled={!currentPlan}
+                >
+                  Current Plan
+                </button>
+                <button
+                  onClick={() => setView('history')}
+                  className={\`px-4 py-2 rounded \${view === 'history' ? 'bg-orange-600 text-white' : 'bg-gray-200'}\`}
+                >
+                  History ({mealHistory.length})
+                </button>
+              </div>
+
+              {view === 'plan' && (
+                <div>
+                  <div className="space-y-4 mb-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Planning Horizon: {planDays} days
+                      </label>
+                      <input
+                        type="range"
+                        min="3"
+                        max="7"
+                        value={planDays}
+                        onChange={(e) => setPlanDays(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Quick Prep Meals: {quickMeals}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max={planDays}
+                        value={quickMeals}
+                        onChange={(e) => setQuickMeals(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Slow Cooker/Pressure Cooker: {slowCookerMeals}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max={planDays}
+                        value={slowCookerMeals}
+                        onChange={(e) => setSlowCookerMeals(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Weekend Projects: {weekendMeals}
+                      </label>
+                      <input
+                        type="range"
+                        min="0"
+                        max={planDays}
+                        value={weekendMeals}
+                        onChange={(e) => setWeekendMeals(parseInt(e.target.value))}
+                        className="w-full"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Additional Notes (optional)
+                      </label>
+                      <textarea
+                        value={additionalNotes}
+                        onChange={(e) => setAdditionalNotes(e.target.value)}
+                        placeholder="e.g., 'craving Mexican food' or 'use up leftover beef' or 'kids want tacos'"
+                        className="w-full p-2 border rounded"
+                        rows="2"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={generateMealPlan}
+                    disabled={loading}
+                    className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Generating Plan...' : 'Generate Meal Plan'}
+                  </button>
+                </div>
+              )}
+
+              {view === 'current' && currentPlan && (
+                <div>
+                  <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                    <Calendar className="w-6 h-6" />
+                    Your {planDays}-Day Meal Plan
+                  </h2>
+
+                  <div className="space-y-4 mb-6">
+                    {currentPlan.meals.map((meal, index) => (
+                      <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-bold text-lg">{meal.name}</h3>
+                            <div className="flex gap-2 text-sm text-gray-600 mt-1">
+                              <span className="flex items-center gap-1">
+                                {meal.type === 'quick' && <Clock className="w-4 h-4" />}
+                                {meal.type === 'slow-cooker' && <Flame className="w-4 h-4" />}
+                                {meal.type === 'weekend' && <ChefHat className="w-4 h-4" />}
+                                {meal.type}
+                              </span>
+                              <span>•</span>
+                              <span>{meal.prepTime}</span>
+                            </div>
+                          </div>
+                          <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">
+                            Day {meal.day}
+                          </span>
+                        </div>
+
+                        <p className="text-gray-700 mb-2">{meal.description}</p>
+                        <p className="text-sm font-medium text-gray-600 mb-2">Protein: {meal.protein}</p>
+                        
+                        {meal.notes && (
+                          <p className="text-sm italic text-gray-600 bg-blue-50 p-2 rounded">{meal.notes}</p>
+                        )}
+
+                        <div className="flex gap-2 mt-3 mb-3">
+                          <button
+                            onClick={() => regenerateMeal(index)}
+                            disabled={regeneratingMeal === index}
+                            className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-3 rounded hover:bg-blue-700 disabled:bg-gray-300 text-sm"
+                          >
+                            <RefreshCw className={\`w-4 h-4 \${regeneratingMeal === index ? 'animate-spin' : ''}\`} />
+                            {regeneratingMeal === index ? 'Regenerating...' : 'Regenerate'}
+                          </button>
+                          <button
+                            onClick={() => setAdjustingMeal(index)}
+                            className="flex-1 flex items-center justify-center gap-2 bg-purple-600 text-white py-2 px-3 rounded hover:bg-purple-700 text-sm"
+                          >
+                            <Edit className="w-4 h-4" />
+                            Adjust
+                          </button>
+                        </div>
+
+                        {meal.recipe ? (
+                          <div className="mb-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <button
+                                onClick={() => setExpandedRecipes({ ...expandedRecipes, [index]: !expandedRecipes[index] })}
+                                className="text-orange-600 font-semibold flex items-center gap-1"
+                              >
+                                <ChefHat className="w-4 h-4" />
+                                {expandedRecipes[index] ? 'Hide Recipe' : 'Show Recipe'}
+                              </button>
+                              <button
+                                onClick={() => exportRecipeToNotes(meal)}
+                                className="text-sm bg-gray-700 text-white px-3 py-1 rounded hover:bg-gray-800 flex items-center gap-1"
+                              >
+                                <FileText className="w-3 h-3" />
+                                Export to Notes
+                              </button>
+                            </div>
+                            {expandedRecipes[index] && (
+                              <div className="bg-amber-50 p-4 rounded border border-amber-200 whitespace-pre-wrap text-sm">
+                                {meal.recipe}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => getRecipe(index)}
+                            disabled={loadingRecipe === index}
+                            className="w-full mb-3 bg-orange-600 text-white py-2 rounded hover:bg-orange-700 disabled:bg-gray-300 flex items-center justify-center gap-2"
+                          >
+                            <ChefHat className="w-4 h-4" />
+                            {loadingRecipe === index ? 'Loading Recipe...' : 'View Recipe'}
+                          </button>
+                        )}
+
+                        <div className="mt-3 space-y-2 bg-white p-3 rounded">
+                          <RatingButton
+                            label="Prep Ease"
+                            value={meal.rating?.prepEase}
+                            onClick={(value) => rateMeal(index, 'prepEase', value)}
+                          />
+                          <RatingButton
+                            label="Cost Value"
+                            value={meal.rating?.costValue}
+                            onClick={(value) => rateMeal(index, 'costValue', value)}
+                          />
+                          <RatingButton
+                            label="Nutrition"
+                            value={meal.rating?.nutrition}
+                            onClick={(value) => rateMeal(index, 'nutrition', value)}
+                          />
+                          <RatingButton
+                            label="Kids"
+                            value={meal.rating?.kidsApproved}
+                            onClick={(value) => rateMeal(index, 'kidsApproved', value)}
+                          />
+                          <RatingButton
+                            label="Adults"
+                            value={meal.rating?.adultsApproved}
+                            onClick={(value) => rateMeal(index, 'adultsApproved', value)}
+                          />
+                          
+                          <button
+                            onClick={() => saveMealToHistory(meal)}
+                            className="w-full mt-2 bg-green-600 text-white py-2 rounded hover:bg-green-700 flex items-center justify-center gap-2"
+                          >
+                            <Save className="w-4 h-4" />
+                            Save to History
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-bold text-lg flex items-center gap-2">
+                        <ShoppingCart className="w-5 h-5" />
+                        Shopping List
+                      </h3>
+                      <button
+                        onClick={exportToAppleNotes}
+                        className="flex items-center gap-2 bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 text-sm"
+                      >
+                        <FileText className="w-4 h-4" />
+                        Export to Notes
+                      </button>
+                    </div>
+
+                    {Object.entries(currentPlan.shoppingList).map(([category, items]) => (
+                      items.length > 0 && (
+                        <div key={category} className="mb-3">
+                          <h4 className="font-semibold text-gray-700 capitalize mb-1">{category}</h4>
+                          <ul className="list-disc list-inside space-y-1">
+                            {items.map((item, i) => (
+                              <li key={i} className="text-gray-600">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {view === 'history' && (
+                <div>
+                  <h2 className="text-2xl font-bold mb-4">Meal History</h2>
+                  
+                  {mealHistory.length === 0 ? (
+                    <p className="text-gray-600">No meals saved yet. Rate and save meals from your current plan!</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {mealHistory.map((meal, index) => (
+                        <div key={index} className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h3 className="font-bold">{meal.name}</h3>
+                              <p className="text-sm text-gray-600">{meal.protein}</p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Cooked: {new Date(meal.cookedDate).toLocaleDateString()}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => removeMealFromHistory(index)}
+                              className="text-red-600 hover:text-red-800 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
+                            <span className={meal.rating.prepEase === 'good' ? 'text-green-600' : 'text-red-600'}>
+                              Prep: {meal.rating.prepEase}
+                            </span>
+                            <span className={meal.rating.costValue === 'good' ? 'text-green-600' : 'text-red-600'}>
+                              Cost: {meal.rating.costValue}
+                            </span>
+                            <span className={meal.rating.nutrition === 'good' ? 'text-green-600' : 'text-red-600'}>
+                              Nutrition: {meal.rating.nutrition}
+                            </span>
+                            <span className={meal.rating.kidsApproved === 'good' ? 'text-green-600' : 'text-red-600'}>
+                              Kids: {meal.rating.kidsApproved}
+                            </span>
+                            <span className={meal.rating.adultsApproved === 'good' ? 'text-green-600' : 'text-red-600'}>
+                              Adults: {meal.rating.adultsApproved}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-4 text-sm text-gray-600">
+              <p className="font-medium mb-2">Dietary Guidelines:</p>
+              <ul className="list-disc list-inside space-y-1 text-xs">
+                <li>Avoiding ultra-processed foods, seed oils, sugar, enriched flour</li>
+                <li>High animal protein (2.5# beef/fish or 4.5# chicken per dinner)</li>
+                <li>Raw milk and eggs on hand</li>
+              </ul>
+            </div>
+          </div>
+
+          {adjustingMeal !== null && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+              <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                <h3 className="text-xl font-bold mb-4">Adjust Meal</h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Currently adjusting: <strong>{currentPlan.meals[adjustingMeal].name}</strong>
+                </p>
+                <textarea
+                  value={adjustmentRequest}
+                  onChange={(e) => setAdjustmentRequest(e.target.value)}
+                  placeholder="e.g., 'make it spicier', 'use chicken instead of beef', 'add more vegetables'"
+                  className="w-full p-3 border rounded mb-4"
+                  rows="4"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={adjustMeal}
+                    disabled={!adjustmentRequest.trim() || regeneratingMeal !== null}
+                    className="flex-1 bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:bg-gray-300"
+                  >
+                    {regeneratingMeal !== null ? 'Adjusting...' : 'Apply Adjustment'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAdjustingMeal(null);
+                      setAdjustmentRequest('');
+                    }}
+                    className="flex-1 bg-gray-300 text-gray-700 py-2 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<MealPlanner />, document.getElementById('root'));
+  </script>
+</body>
+</html>
