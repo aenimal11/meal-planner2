@@ -160,16 +160,16 @@
 - High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)
 - Raw milk and eggs on hand
 
-Generate a \${planDays}-day dinner meal plan. The user has requested:
-- At least \${quickMeals} quick prep meals (30 min or less active time)
-- At least \${slowCookerMeals} slow cooker/pressure cooker meals (prep in advance)
-- At least \${weekendMeals} weekend project meals (more involved, worth the effort)
+Generate a ${planDays}-day dinner meal plan. The user has requested:
+- At least ${quickMeals} quick prep meals (30 min or less active time)
+- At least ${slowCookerMeals} slow cooker/pressure cooker meals (prep in advance)
+- At least ${weekendMeals} weekend project meals (more involved, worth the effort)
 
 For any remaining meals, choose appropriate types based on variety and balance.
 
-\${additionalNotes ? `Additional preferences: \${additionalNotes}` : ''}
+${additionalNotes ? `Additional preferences: ${additionalNotes}` : ''}
 
-\${topRatedMeals.length > 0 ? `Previously enjoyed meals (consider including similar): \${topRatedMeals.map(m => m.name).join(', ')}` : ''}
+${topRatedMeals.length > 0 ? `Previously enjoyed meals (consider including similar): ${topRatedMeals.map(m => m.name).join(', ')}` : ''}
 
 Format your response as a JSON object with this structure:
 {
@@ -226,7 +226,7 @@ Return ONLY the JSON object, no other text.`;
         
         const currentMeal = currentPlan.meals[mealIndex];
         
-        const prompt = `Generate a replacement meal for day \${currentMeal.day} of a meal plan for a family of 5 (2 adults, 3 kids).
+        const prompt = `Generate a replacement meal for day ${currentMeal.day} of a meal plan for a family of 5 (2 adults, 3 kids).
 
 Dietary preferences:
 - Avoid ultra-processed foods, seed oils, sugar, and enriched flour
@@ -234,15 +234,15 @@ Dietary preferences:
 - Raw milk and eggs on hand
 
 Requirements:
-- Type: \${currentMeal.type}
-- Should be DIFFERENT from: \${currentMeal.name}
-- Other meals in the plan: \${currentPlan.meals.filter((_, i) => i !== mealIndex).map(m => m.name).join(', ')}
+- Type: ${currentMeal.type}
+- Should be DIFFERENT from: ${currentMeal.name}
+- Other meals in the plan: ${currentPlan.meals.filter((_, i) => i !== mealIndex).map(m => m.name).join(', ')}
 
 Format your response as a JSON object with this structure (just the single meal):
 {
-  "day": \${currentMeal.day},
+  "day": ${currentMeal.day},
   "name": "Meal name",
-  "type": "\${currentMeal.type}",
+  "type": "${currentMeal.type}",
   "protein": "type and amount",
   "description": "brief description",
   "prepTime": "estimated time",
@@ -281,9 +281,9 @@ Return ONLY the JSON object, no other text.`;
         const prompt = `Adjust this meal based on the user's request.
 
 Current meal:
-\${JSON.stringify(currentMeal, null, 2)}
+${JSON.stringify(currentMeal, null, 2)}
 
-User's adjustment request: \${adjustmentRequest}
+User's adjustment request: ${adjustmentRequest}
 
 Dietary preferences:
 - Avoid ultra-processed foods, seed oils, sugar, and enriched flour
@@ -292,9 +292,9 @@ Dietary preferences:
 
 Format your response as a JSON object with this structure (the adjusted meal):
 {
-  "day": \${currentMeal.day},
+  "day": ${currentMeal.day},
   "name": "Meal name",
-  "type": "\${currentMeal.type}",
+  "type": "${currentMeal.type}",
   "protein": "type and amount",
   "description": "brief description",
   "prepTime": "estimated time",
@@ -329,7 +329,7 @@ Return ONLY the JSON object, no other text.`;
       const regenerateShoppingList = async (plan) => {
         const prompt = `Given these meals, generate a consolidated shopping list organized by category:
 
-\${JSON.stringify(plan.meals, null, 2)}
+${JSON.stringify(plan.meals, null, 2)}
 
 Format your response as a JSON object:
 {
@@ -361,20 +361,20 @@ Return ONLY the JSON object, no other text.`;
       const exportToAppleNotes = () => {
         if (!currentPlan) return;
         
-        let noteContent = `Grocery List - \${new Date().toLocaleDateString()}\\n\\n`;
+        let noteContent = `Grocery List - ${new Date().toLocaleDateString()}\\n\\n`;
         
         Object.entries(currentPlan.shoppingList).forEach(([category, items]) => {
           if (items.length > 0) {
-            noteContent += `\${category.toUpperCase()}\\n`;
+            noteContent += `${category.toUpperCase()}\\n`;
             items.forEach(item => {
-              noteContent += `☐ \${item}\\n`;
+              noteContent += `☐ ${item}\\n`;
             });
             noteContent += '\\n';
           }
         });
         
         const encodedContent = encodeURIComponent(noteContent);
-        const notesUrl = `mobilenotes://note?content=\${encodedContent}`;
+        const notesUrl = `mobilenotes://note?content=${encodedContent}`;
         
         window.location.href = notesUrl;
         
@@ -392,13 +392,13 @@ Return ONLY the JSON object, no other text.`;
         
         const prompt = `Generate a detailed recipe for this meal:
 
-Meal: \${meal.name}
-Description: \${meal.description}
-Protein: \${meal.protein}
-Type: \${meal.type}
-Prep Time: \${meal.prepTime}
-Ingredients: \${meal.ingredients.join(', ')}
-\${meal.notes ? `Notes: \${meal.notes}` : ''}
+Meal: ${meal.name}
+Description: ${meal.description}
+Protein: ${meal.protein}
+Type: ${meal.type}
+Prep Time: ${meal.prepTime}
+Ingredients: ${meal.ingredients.join(', ')}
+${meal.notes ? `Notes: ${meal.notes}` : ''}
 
 Create a complete recipe with:
 - Ingredient list with specific amounts for a family of 5 (2 adults, 3 kids)
@@ -429,9 +429,9 @@ Keep it practical and realistic. Return as plain text formatted recipe, not JSON
       const exportRecipeToNotes = (meal) => {
         if (!meal.recipe) return;
         
-        const noteContent = `\${meal.name}\\n\\n\${meal.recipe}`;
+        const noteContent = `${meal.name}\\n\\n${meal.recipe}`;
         const encodedContent = encodeURIComponent(noteContent);
-        const notesUrl = `mobilenotes://note?content=\${encodedContent}`;
+        const notesUrl = `mobilenotes://note?content=${encodedContent}`;
         
         window.location.href = notesUrl;
         
@@ -472,7 +472,7 @@ Keep it practical and realistic. Return as plain text formatted recipe, not JSON
             <span className="text-xs text-gray-600 w-16">{label}:</span>
             <button
               onClick={() => onClick('good')}
-              className={`px-2 py-1 rounded text-xs \${
+              className={`px-2 py-1 rounded text-xs ${
                 isGood ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
               }`}
             >
@@ -480,7 +480,7 @@ Keep it practical and realistic. Return as plain text formatted recipe, not JSON
             </button>
             <button
               onClick={() => onClick('bad')}
-              className={`px-2 py-1 rounded text-xs \${
+              className={`px-2 py-1 rounded text-xs ${
                 isBad ? 'bg-red-500 text-white' : 'bg-gray-200 text-gray-600'
               }`}
             >
@@ -502,20 +502,20 @@ Keep it practical and realistic. Return as plain text formatted recipe, not JSON
               <div className="flex gap-2 mb-6">
                 <button
                   onClick={() => setView('plan')}
-                  className={`px-4 py-2 rounded \${view === 'plan' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
+                  className={`px-4 py-2 rounded ${view === 'plan' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
                 >
                   New Plan
                 </button>
                 <button
                   onClick={() => setView('current')}
-                  className={`px-4 py-2 rounded \${view === 'current' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
+                  className={`px-4 py-2 rounded ${view === 'current' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
                   disabled={!currentPlan}
                 >
                   Current Plan
                 </button>
                 <button
                   onClick={() => setView('history')}
-                  className={`px-4 py-2 rounded \${view === 'history' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
+                  className={`px-4 py-2 rounded ${view === 'history' ? 'bg-orange-600 text-white' : 'bg-gray-200'}`}
                 >
                   History ({mealHistory.length})
                 </button>
@@ -646,7 +646,7 @@ Keep it practical and realistic. Return as plain text formatted recipe, not JSON
                             disabled={regeneratingMeal === index}
                             className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 px-3 rounded hover:bg-blue-700 disabled:bg-gray-300 text-sm"
                           >
-                            <RefreshCw className={`w-4 h-4 \${regeneratingMeal === index ? 'animate-spin' : ''}`} />
+                            <RefreshCw className={`w-4 h-4 ${regeneratingMeal === index ? 'animate-spin' : ''}`} />
                             {regeneratingMeal === index ? 'Regenerating...' : 'Regenerate'}
                           </button>
                           <button
