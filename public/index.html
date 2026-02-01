@@ -49,14 +49,29 @@ function MealPlanner() {
   const [regeneratingMeal, setRegeneratingMeal] = useState(null);
   const [loadingRecipe, setLoadingRecipe] = useState(null);
   const [expandedRecipes, setExpandedRecipes] = useState({});
+  const [editingGuidelines, setEditingGuidelines] = useState(false);
+  const [guidelines, setGuidelines] = useState([
+    'Avoiding ultra-processed foods, seed oils, sugar, enriched flour',
+    'High animal protein (2.5# beef/fish or 4.5# chicken per dinner)',
+    'Raw milk and eggs on hand'
+  ]);
 
   useEffect(() => {
     const stored = localStorage.getItem('meal-history');
     if (stored) setMealHistory(JSON.parse(stored));
+    
+    const storedGuidelines = localStorage.getItem('dietary-guidelines');
+    if (storedGuidelines) setGuidelines(JSON.parse(storedGuidelines));
   }, []);
 
   const saveMealHistory = (history) => {
     localStorage.setItem('meal-history', JSON.stringify(history));
+  };
+
+  const saveGuidelines = (newGuidelines) => {
+    setGuidelines(newGuidelines);
+    localStorage.setItem('dietary-guidelines', JSON.stringify(newGuidelines));
+    setEditingGuidelines(false);
   };
 
   const callAPI = async (messages, maxTokens = 4000) => {
@@ -73,7 +88,7 @@ function MealPlanner() {
     setLoading(true);
     const topRated = mealHistory.filter(m => m.rating && (m.rating.kidsApproved === 'good' || m.rating.adultsApproved === 'good')).slice(0, 5);
     
-    const prompt = 'You are a meal planning assistant for a family of 5 (2 adults, 3 kids) with specific dietary preferences:\n- Avoid ultra-processed foods, seed oils, sugar, and enriched flour\n- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)\n- Raw milk and eggs on hand\n\nGenerate a ' + planDays + '-day dinner meal plan. The user has requested:\n- At least ' + quickMeals + ' quick prep meals (30 min or less active time)\n- At least ' + slowCookerMeals + ' slow cooker/pressure cooker meals (prep in advance)\n- At least ' + weekendMeals + ' weekend project meals (more involved, worth the effort)\n\nFor any remaining meals, choose appropriate types based on variety and balance.\n\n' + (additionalNotes ? 'Additional preferences: ' + additionalNotes + '\n\n' : '') + (topRated.length > 0 ? 'Previously enjoyed meals (consider including similar): ' + topRated.map(m => m.name).join(', ') + '\n\n' : '') + 'Format your response as a JSON object with this structure:\n{\n  "meals": [\n    {\n      "day": 1,\n      "name": "Meal name",\n      "type": "quick" | "slow-cooker" | "weekend",\n      "protein": "type and amount",\n      "description": "brief description",\n      "prepTime": "estimated time",\n      "ingredients": ["ingredient 1", "ingredient 2"],\n      "notes": "any prep tips or leftover ideas"\n    }\n  ],\n  "shoppingList": {\n    "meat": ["item with amount"],\n    "produce": ["item"],\n    "dairy": ["item"],\n    "pantry": ["item"],\n    "other": ["item"]\n  }\n}\n\nReturn ONLY the JSON object, no other text.';
+    const prompt = 'You are a meal planning assistant for a family of 5 (2 adults, 3 kids) with specific dietary preferences:\n' + guidelines.map(g => '- ' + g).join('\n') + '\n\nGenerate a ' + planDays + '-day dinner meal plan. The user has requested:\n- At least ' + quickMeals + ' quick prep meals (30 min or less active time)\n- At least ' + slowCookerMeals + ' slow cooker/pressure cooker meals (prep in advance)\n- At least ' + weekendMeals + ' weekend project meals (more involved, worth the effort)\n\nFor any remaining meals, choose appropriate types based on variety and balance.\n\n' + (additionalNotes ? 'Additional preferences: ' + additionalNotes + '\n\n' : '') + (topRated.length > 0 ? 'Previously enjoyed meals (consider including similar): ' + topRated.map(m => m.name).join(', ') + '\n\n' : '') + 'Format your response as a JSON object with this structure:\n{\n  "meals": [\n    {\n      "day": 1,\n      "name": "Meal name",\n      "type": "quick" | "slow-cooker" | "weekend",\n      "protein": "type and amount",\n      "description": "brief description",\n      "prepTime": "estimated time",\n      "ingredients": ["ingredient 1", "ingredient 2"],\n      "notes": "any prep tips or leftover ideas"\n    }\n  ],\n  "shoppingList": {\n    "meat": ["item with amount"],\n    "produce": ["item"],\n    "dairy": ["item"],\n    "pantry": ["item"],\n    "other": ["item"]\n  }\n}\n\nReturn ONLY the JSON object, no other text.';
 
     try {
       const data = await callAPI([{ role: 'user', content: prompt }]);
@@ -411,12 +426,48 @@ function MealPlanner() {
         </div>
 
         <div className="bg-white rounded-lg shadow p-4 text-sm text-gray-600">
-          <p className="font-medium mb-2">Dietary Guidelines:</p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
-            <li>Avoiding ultra-processed foods, seed oils, sugar, enriched flour</li>
-            <li>High animal protein (2.5# beef/fish or 4.5# chicken per dinner)</li>
-            <li>Raw milk and eggs on hand</li>
-          </ul>
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-medium">Dietary Guidelines:</p>
+            <button onClick={() => setEditingGuidelines(!editingGuidelines)} className="text-orange-600 hover:text-orange-700 text-xs">
+              {editingGuidelines ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          {editingGuidelines ? (
+            <div>
+              {guidelines.map((guideline, idx) => (
+                <div key={idx} className="mb-2">
+                  <input 
+                    type="text" 
+                    value={guideline} 
+                    onChange={(e) => {
+                      const updated = [...guidelines];
+                      updated[idx] = e.target.value;
+                      setGuidelines(updated);
+                    }}
+                    className="w-full p-2 border rounded text-xs"
+                  />
+                </div>
+              ))}
+              <div className="flex gap-2 mt-3">
+                <button 
+                  onClick={() => setGuidelines([...guidelines, ''])} 
+                  className="text-xs bg-gray-200 px-3 py-1 rounded hover:bg-gray-300"
+                >
+                  Add Guideline
+                </button>
+                <button 
+                  onClick={() => saveGuidelines(guidelines)} 
+                  className="text-xs bg-orange-600 text-white px-3 py-1 rounded hover:bg-orange-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          ) : (
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              {guidelines.map((guideline, idx) => guideline && <li key={idx}>{guideline}</li>)}
+            </ul>
+          )}
         </div>
       </div>
 
