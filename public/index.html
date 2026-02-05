@@ -50,6 +50,12 @@ function MealPlanner() {
   const [loadingRecipe, setLoadingRecipe] = useState(null);
   const [expandedRecipes, setExpandedRecipes] = useState({});
   const [editingGuidelines, setEditingGuidelines] = useState(false);
+  const [editingHousehold, setEditingHousehold] = useState(false);
+  const [household, setHousehold] = useState({
+    adults: 2,
+    kids: 3,
+    totalPeople: 5
+  });
   const [guidelines, setGuidelines] = useState([
     'Avoiding ultra-processed foods, seed oils, sugar, enriched flour',
     'High animal protein (2.5# beef/fish or 4.5# chicken per dinner)',
@@ -62,6 +68,9 @@ function MealPlanner() {
     
     const storedGuidelines = localStorage.getItem('dietary-guidelines');
     if (storedGuidelines) setGuidelines(JSON.parse(storedGuidelines));
+    
+    const storedHousehold = localStorage.getItem('household-config');
+    if (storedHousehold) setHousehold(JSON.parse(storedHousehold));
   }, []);
 
   const saveMealHistory = (history) => {
@@ -72,6 +81,12 @@ function MealPlanner() {
     setGuidelines(newGuidelines);
     localStorage.setItem('dietary-guidelines', JSON.stringify(newGuidelines));
     setEditingGuidelines(false);
+  };
+
+  const saveHousehold = (newHousehold) => {
+    setHousehold(newHousehold);
+    localStorage.setItem('household-config', JSON.stringify(newHousehold));
+    setEditingHousehold(false);
   };
 
   const callAPI = async (messages, maxTokens = 4000) => {
@@ -88,7 +103,7 @@ function MealPlanner() {
     setLoading(true);
     const topRated = mealHistory.filter(m => m.rating && (m.rating.kidsApproved === 'good' || m.rating.adultsApproved === 'good')).slice(0, 5);
     
-    const prompt = 'You are a meal planning assistant for a family of 5 (2 adults, 3 kids) with specific dietary preferences:\n' + guidelines.map(g => '- ' + g).join('\n') + '\n\nGenerate a ' + planDays + '-day dinner meal plan. The user has requested:\n- At least ' + quickMeals + ' quick prep meals (30 min or less active time)\n- At least ' + slowCookerMeals + ' slow cooker/pressure cooker meals (prep in advance)\n- At least ' + weekendMeals + ' weekend project meals (more involved, worth the effort)\n\nFor any remaining meals, choose appropriate types based on variety and balance.\n\n' + (additionalNotes ? 'Additional preferences: ' + additionalNotes + '\n\n' : '') + (topRated.length > 0 ? 'Previously enjoyed meals (consider including similar): ' + topRated.map(m => m.name).join(', ') + '\n\n' : '') + 'Format your response as a JSON object with this structure:\n{\n  "meals": [\n    {\n      "day": 1,\n      "name": "Meal name",\n      "type": "quick" | "slow-cooker" | "weekend",\n      "protein": "type and amount",\n      "description": "brief description",\n      "prepTime": "estimated time",\n      "ingredients": ["ingredient 1", "ingredient 2"],\n      "notes": "any prep tips or leftover ideas"\n    }\n  ],\n  "shoppingList": {\n    "meat": ["item with amount"],\n    "produce": ["item"],\n    "dairy": ["item"],\n    "pantry": ["item"],\n    "other": ["item"]\n  }\n}\n\nReturn ONLY the JSON object, no other text.';
+    const prompt = 'You are a meal planning assistant for a household of ' + household.totalPeople + ' people (' + household.adults + ' adults, ' + household.kids + ' kids) with specific dietary preferences:\n' + guidelines.map(g => '- ' + g).join('\n') + '\n\nGenerate a ' + planDays + '-day dinner meal plan. The user has requested:\n- At least ' + quickMeals + ' quick prep meals (30 min or less active time)\n- At least ' + slowCookerMeals + ' slow cooker/pressure cooker meals (prep in advance)\n- At least ' + weekendMeals + ' weekend project meals (more involved, worth the effort)\n\nFor any remaining meals, choose appropriate types based on variety and balance.\n\n' + (additionalNotes ? 'Additional preferences: ' + additionalNotes + '\n\n' : '') + (topRated.length > 0 ? 'Previously enjoyed meals (consider including similar): ' + topRated.map(m => m.name).join(', ') + '\n\n' : '') + 'Format your response as a JSON object with this structure:\n{\n  "meals": [\n    {\n      "day": 1,\n      "name": "Meal name",\n      "type": "quick" | "slow-cooker" | "weekend",\n      "protein": "type and amount",\n      "description": "brief description",\n      "prepTime": "estimated time",\n      "ingredients": ["ingredient 1", "ingredient 2"],\n      "notes": "any prep tips or leftover ideas"\n    }\n  ],\n  "shoppingList": {\n    "meat": ["item with amount"],\n    "produce": ["item"],\n    "dairy": ["item"],\n    "pantry": ["item"],\n    "other": ["item"]\n  }\n}\n\nReturn ONLY the JSON object, no other text.';
 
     try {
       const data = await callAPI([{ role: 'user', content: prompt }]);
@@ -116,7 +131,7 @@ function MealPlanner() {
     const meal = currentPlan.meals[idx];
     const others = currentPlan.meals.filter((_, i) => i !== idx).map(m => m.name).join(', ');
     
-    const prompt = 'Generate a replacement meal for day ' + meal.day + ' of a meal plan for a family of 5 (2 adults, 3 kids).\n\nDietary preferences:\n- Avoid ultra-processed foods, seed oils, sugar, and enriched flour\n- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)\n- Raw milk and eggs on hand\n\nRequirements:\n- Type: ' + meal.type + '\n- Should be DIFFERENT from: ' + meal.name + '\n- Other meals in the plan: ' + others + '\n\nFormat your response as a JSON object with this structure (just the single meal):\n{\n  "day": ' + meal.day + ',\n  "name": "Meal name",\n  "type": "' + meal.type + '",\n  "protein": "type and amount",\n  "description": "brief description",\n  "prepTime": "estimated time",\n  "ingredients": ["ingredient 1", "ingredient 2"],\n  "notes": "any prep tips or leftover ideas"\n}\n\nReturn ONLY the JSON object, no other text.';
+    const prompt = 'Generate a replacement meal for day ' + meal.day + ' of a meal plan for a household of ' + household.totalPeople + ' people (' + household.adults + ' adults, ' + household.kids + ' kids).\n\nDietary preferences:\n' + guidelines.map(g => '- ' + g).join('\n') + '\n\nRequirements:\n- Type: ' + meal.type + '\n- Should be DIFFERENT from: ' + meal.name + '\n- Other meals in the plan: ' + others + '\n\nFormat your response as a JSON object with this structure (just the single meal):\n{\n  "day": ' + meal.day + ',\n  "name": "Meal name",\n  "type": "' + meal.type + '",\n  "protein": "type and amount",\n  "description": "brief description",\n  "prepTime": "estimated time",\n  "ingredients": ["ingredient 1", "ingredient 2"],\n  "notes": "any prep tips or leftover ideas"\n}\n\nReturn ONLY the JSON object, no other text.';
 
     try {
       const data = await callAPI([{ role: 'user', content: prompt }], 1000);
@@ -138,7 +153,7 @@ function MealPlanner() {
     setRegeneratingMeal(adjustingMeal);
     const meal = currentPlan.meals[adjustingMeal];
     
-    const prompt = 'Adjust this meal based on the user request.\n\nCurrent meal:\n' + JSON.stringify(meal, null, 2) + '\n\nUser adjustment request: ' + adjustmentRequest + '\n\nDietary preferences:\n- Avoid ultra-processed foods, seed oils, sugar, and enriched flour\n- High animal protein (typical dinner: 2.5# beef/fish or 4.5# whole chicken)\n- Raw milk and eggs on hand\n\nFormat your response as a JSON object with this structure (the adjusted meal):\n{\n  "day": ' + meal.day + ',\n  "name": "Meal name",\n  "type": "' + meal.type + '",\n  "protein": "type and amount",\n  "description": "brief description",\n  "prepTime": "estimated time",\n  "ingredients": ["ingredient 1", "ingredient 2"],\n  "notes": "any prep tips or leftover ideas"\n}\n\nReturn ONLY the JSON object, no other text.';
+    const prompt = 'Adjust this meal based on the user request.\n\nCurrent meal:\n' + JSON.stringify(meal, null, 2) + '\n\nUser adjustment request: ' + adjustmentRequest + '\n\nDietary preferences:\n' + guidelines.map(g => '- ' + g).join('\n') + '\n\nFormat your response as a JSON object with this structure (the adjusted meal):\n{\n  "day": ' + meal.day + ',\n  "name": "Meal name",\n  "type": "' + meal.type + '",\n  "protein": "type and amount",\n  "description": "brief description",\n  "prepTime": "estimated time",\n  "ingredients": ["ingredient 1", "ingredient 2"],\n  "notes": "any prep tips or leftover ideas"\n}\n\nReturn ONLY the JSON object, no other text.';
 
     try {
       const data = await callAPI([{ role: 'user', content: prompt }], 1000);
@@ -195,7 +210,7 @@ function MealPlanner() {
     setLoadingRecipe(idx);
     const meal = currentPlan.meals[idx];
     
-    const prompt = 'Generate a detailed recipe for this meal:\n\nMeal: ' + meal.name + '\nDescription: ' + meal.description + '\nProtein: ' + meal.protein + '\nType: ' + meal.type + '\nPrep Time: ' + meal.prepTime + '\nIngredients: ' + meal.ingredients.join(', ') + (meal.notes ? '\nNotes: ' + meal.notes : '') + '\n\nCreate a complete recipe with:\n- Ingredient list with specific amounts for a family of 5 (2 adults, 3 kids)\n- Step-by-step cooking instructions\n- Any tips or variations\n- Total cook time\n\nKeep it practical and realistic. Return as plain text formatted recipe, not JSON.';
+    const prompt = 'Generate a detailed recipe for this meal:\n\nMeal: ' + meal.name + '\nDescription: ' + meal.description + '\nProtein: ' + meal.protein + '\nType: ' + meal.type + '\nPrep Time: ' + meal.prepTime + '\nIngredients: ' + meal.ingredients.join(', ') + (meal.notes ? '\nNotes: ' + meal.notes : '') + '\n\nCreate a complete recipe with:\n- Ingredient list with specific amounts for ' + household.totalPeople + ' people (' + household.adults + ' adults, ' + household.kids + ' kids)\n- Step-by-step cooking instructions\n- Any tips or variations\n- Total cook time\n\nKeep it practical and realistic. Return as plain text formatted recipe, not JSON.';
 
     try {
       const data = await callAPI([{ role: 'user', content: prompt }], 2000);
@@ -421,6 +436,62 @@ function MealPlanner() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-lg shadow p-4 text-sm text-gray-600 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-medium">Household Size:</p>
+            <button onClick={() => setEditingHousehold(!editingHousehold)} className="text-orange-600 hover:text-orange-700 text-xs">
+              {editingHousehold ? 'Cancel' : 'Edit'}
+            </button>
+          </div>
+          {editingHousehold ? (
+            <div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Adults:</label>
+                  <input 
+                    type="number" 
+                    min="1" 
+                    max="20"
+                    value={household.adults} 
+                    onChange={(e) => {
+                      const adults = parseInt(e.target.value) || 1;
+                      setHousehold({...household, adults, totalPeople: adults + household.kids});
+                    }}
+                    className="w-full p-2 border rounded text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-1">Kids:</label>
+                  <input 
+                    type="number" 
+                    min="0" 
+                    max="20"
+                    value={household.kids} 
+                    onChange={(e) => {
+                      const kids = parseInt(e.target.value) || 0;
+                      setHousehold({...household, kids, totalPeople: household.adults + kids});
+                    }}
+                    className="w-full p-2 border rounded text-xs"
+                  />
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <p className="text-xs font-medium">Total: {household.totalPeople} people</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => saveHousehold(household)} 
+                className="w-full mt-3 text-xs bg-orange-600 text-white px-3 py-2 rounded hover:bg-orange-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          ) : (
+            <div className="text-xs">
+              <p>{household.adults} adults, {household.kids} kids ({household.totalPeople} total)</p>
             </div>
           )}
         </div>
